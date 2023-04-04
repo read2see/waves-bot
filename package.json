@@ -1,0 +1,19 @@
+{
+  "name": "nms-order-bot",
+  "version": "1.0.0",
+  "description": "Ghost of Tushima Discord bot, that will post to gotlegends.info to generate screenshots of waves order then download and send the screenshots.",
+  "main": "index.js",
+  "scripts": {
+    "test": "/tsu"
+  },
+  "keywords": [
+    "ghost-of-tsushima-legends",
+    "nms-order"
+  ],
+  "author": "read2see",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.9.0",
+    "dotenv": "^16.0.3"
+  }
+}

@@ -1,0 +1,5 @@
+Application ID: 1092195894906069022
+
+Public Key: b3e647ca8b641a2fa27b0acff6a5e8c13fd54d5cfacae4eb4f8b7ede62f18e1a
+
+Token: MTA5MjE5NTg5NDkwNjA2OTAyMg.G4gujY.xeEMlO3WnpN5i-MVKmtL5bykVntr3R8Yqjz6Fg
