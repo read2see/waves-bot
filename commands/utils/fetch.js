@@ -14,8 +14,8 @@ module.exports = {
         const channel = interaction.channel
         const messages = await channel.messages.fetch({limit:15});
         const message = messages.filter(m => m.content.startsWith(flag)).first();
-        let data = prepareData(message.content);
-        
+        let data = await prepareData(message.content);
+
         if(data.errors){
             let errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
             initiator.send(errorMessage);
@@ -25,37 +25,39 @@ module.exports = {
             if(!response.ok){
                 initiator.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
                 console.log(`Response Status: ${response.status}| ${response.statusText}`);
+            }else{
+                console.log('Request was sent successfully.');
+ 
+                countdown(delay-3000);
+                setTimeout( async () => {
+                    try {
+                        let links = "";
+                        Object.values(generatedLinks).forEach( async (link,index) => {
+                            let fullURL = 'https://gotlegends.info'+link;
+                            links = links.concat(fullURL+"\n");
+                        })
+                        channel.send(links);
+                        console.log('\n----------------Screenshots sent.')
+                    } catch (error) {
+                        console.error(`Failed to send images to ${channel.name}: ${error}`);
+                        await interaction.reply(`Failed to send images to ${channel.name}.`);
+                    }
+                },
+                delay
+                )
             }
-            
         }
         await interaction.reply(`Generating screenshots ETA ${delay/1000}s.`);
-
-        
-        setTimeout( async () => {
-            try {
-                let links = "";
-                Object.values(generatedLinks).forEach( async (link,index) => {
-                    let fullURL = 'https://gotlegends.info'+link;
-                    links = links.concat(fullURL+"\n");
-                })
-                channel.send(links);
-            } catch (error) {
-                console.error(`Failed to send image to ${channel.name}: ${error}`);
-                await interaction.reply(`Failed to send image to ${channel.name}.`);
-            }
-        },
-        delay
-        )
 	},
 };
 
-function prepareData(message){    
+async function prepareData(message){    
     let data = {
         username: 'discordBot',
-        map_id: getMapId(message),
+        map_id: await getMapId(message),
         week: getWeek(message),
-        modifier: getModifier(message),
-        hazard: getHazard(message),
+        modifier: await getModifier(message),
+        hazard: await getHazard(message),
         zones: getZones(message),
         credits: getCredits(message),
         version: 2.18
@@ -68,10 +70,10 @@ function prepareData(message){
 async function postData(data, secret){
     let staticTestingData = { 
         username: 'discordBot',
-        map_id: "5",
-        week: "7",
-        modifier: "11",
-        hazard: "15",
+        map_id: 5,
+        week: 7,
+        modifier: 11,
+        hazard: 15,
         zones: `Boulder , Cliff LH, Obelisk
         Side, Obelisk, Boulder
         Boulder LH, Side, Obelisk
@@ -88,7 +90,7 @@ async function postData(data, secret){
         Obelisk, Side, Cliff LH
         Obelisk, Cliff LH, Boulder LH`,
         credits: "AfunNightmare",
-        version: "2.18" 
+        version: 2.18
     };
     let response = await fetch('https://gotlegends.info/bot/nms-order/create', {
         method:'POST',
@@ -129,7 +131,7 @@ async function getMapId(message) {
             title: 'Blood and Steel'
         },
     ];
-    const maps = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret);
+    const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret);
     let map_id = -1;
     for (let i = 0; i < maps.length; i++) {
         if (message.toLowerCase().includes(maps[i].title.toLowerCase())) {
@@ -171,7 +173,7 @@ async function getModifier(message) {
             title: 'Barbed Arrows'
         }
     ];
-    const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret);
+    const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/mods', secret);
     let mod_id = -1;
     for (let i = 0; i < modifiers.length; i++) {
         let regex = new RegExp(`${modifiers[i].title} | ${modifiers[i].title.slice(0, 5)}`, 'gim');
@@ -313,3 +315,19 @@ async function fetchResource(url, secret){
     const data = await response.json()
     return data;
 }
+
+  
+function countdown(time) {
+    let countdownTimer = setInterval(function() {
+      process.stdout.write('\rTime Remaining before sending screenshots: ' + (time / 1000) + 's   ');
+      time = time - 1000;
+  
+      if (time < 0) {
+        clearInterval(countdownTimer);
+        console.log("");
+      }
+    }, 1000);
+  }
+  
+  
+  
