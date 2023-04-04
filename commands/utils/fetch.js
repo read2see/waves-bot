@@ -14,6 +14,10 @@ module.exports = {
         const channel = interaction.channel
         const messages = await channel.messages.fetch({limit:15});
         const message = messages.filter(m => m.content.startsWith(flag)).first();
+        if(!message){
+            await interaction.reply(`Could not find any order messages with flag !order.`);
+            return
+        }
         let data = await prepareData(message.content);
 
         if(data.errors){
