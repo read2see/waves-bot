@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, Mes } = require('discord.js');
 
-const delay = 120000;
+const delay = 90000;
 const secret = '3T&^jSzkSBQSyGzNbgmPtE7zzvk%usreA%MN&7fZ%tCgH!iTKWzqh29YucQfjLUA';
 const flag = '!order';
 
