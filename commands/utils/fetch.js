@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, Mes } = require('discord.js');
 
-const delay = 90000;
+const delay = 60000;
 const secret = '3T&^jSzkSBQSyGzNbgmPtE7zzvk%usreA%MN&7fZ%tCgH!iTKWzqh29YucQfjLUA';
 const flag = '!order';
 
@@ -9,48 +9,73 @@ module.exports = {
 		.setName('screenshots')
 		.setDescription('Submit update and generate then post screenshots.'),
 	async execute(interaction) {
-        const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', secret);
+        
+        await interaction.reply(`Generating screenshots ETA ${delay/1000}s.`);
+
         const initiator = interaction.user;
-        const channel = interaction.channel
-        const messages = await channel.messages.fetch({limit:15});
+        const channel = interaction.channel;
+
+        const messages = await channel.messages.fetch({limit:20});
         const message = messages.filter(m => m.content.startsWith(flag)).first();
+
         if(!message){
             await interaction.reply(`Could not find any order messages with flag !order.`);
             return
         }
+
         let data = await prepareData(message.content);
 
         if(data.errors){
-            let errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
+
+            const errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
             initiator.send(errorMessage);
             console.log(errorMessage);
+
         }else{
+
             let response = await postData(data, secret);
+
             if(!response.ok){
+
                 initiator.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
                 console.log(`Response Status: ${response.status}| ${response.statusText}`);
+
             }else{
+
                 console.log('Request was sent successfully.');
                 countdown(delay-3000);
+
                 setTimeout( async () => {
+
                     try {
+                        const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', secret);
                         let links = "";
-                        Object.values(generatedLinks).forEach( async (link,index) => {
-                            let fullURL = 'https://gotlegends.info'+link;
-                            links = links.concat(fullURL+"\n");
-                        })
-                        channel.send(links);
-                        console.log('\n----------------Screenshots sent.')
+
+                        if(generatedLinks){
+
+                            Object.values(generatedLinks).forEach( async (link,index) => {
+                                let fullURL = 'https://gotlegends.info'+link;
+                                links = links.concat(fullURL+"\n");
+                            })
+
+                            await channel.send(links);
+                            console.log('\n----------------Screenshots sent.')
+
+                        }
                     } catch (error) {
+
                         console.error(`Failed to send images to ${channel.name}: ${error}`);
                         await interaction.reply(`Failed to send images to ${channel.name}.`);
+
                     }
+
                 },
                 delay
                 )
             }
+
         }
-        await interaction.reply(`Generating screenshots ETA ${delay/1000}s.`);
+       
 	},
 };
 
@@ -59,8 +84,8 @@ async function prepareData(message){
         username: 'discordBot',
         map_id: await getMapId(message),
         week: getWeek(message),
-        modifier: await getModifier(message),
-        hazard: await getHazard(message),
+        modifier_id: await getModifier(message),
+        hazard_id: await getHazard(message),
         zones: getZones(message),
         credits: getCredits(message),
         version: 2.18
@@ -285,11 +310,11 @@ function validateData(data){
         errors.push({dataItem: 'week', cause: 'Check that the week is in the range 1-8.'});
     }
 
-    if(data.modifier === -1){
+    if(data.modifier_id === -1){
         errors.push({dataItem: 'modifier', cause: 'Check and correct weekly modifier.'});
     }
 
-    if(data.modifier === -1){
+    if(data.hazard_id === -1){
         errors.push({dataItem: 'hazard', cause: 'Check and correct weekly hazard.'});
     }
 
