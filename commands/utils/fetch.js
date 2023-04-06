@@ -31,7 +31,6 @@ module.exports = {
                 console.log(`Response Status: ${response.status}| ${response.statusText}`);
             }else{
                 console.log('Request was sent successfully.');
- 
                 countdown(delay-3000);
                 setTimeout( async () => {
                     try {
