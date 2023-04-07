@@ -3,7 +3,7 @@ const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent] });
 
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
@@ -23,8 +23,8 @@ for (const folder of commandFolders) {
 	}
 }
 
-client.once(Events.ClientReady, () => {
-	console.log('Ready!');
+client.once(Events.ClientReady, (c) => {
+	console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
 client.on(Events.InteractionCreate, async interaction => {

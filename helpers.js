@@ -1,138 +1,33 @@
-const { SlashCommandBuilder, Mes } = require('discord.js');
+function formatRawZones(rawZones){
 
-const delay = 60000;
-const secret = '3T&^jSzkSBQSyGzNbgmPtE7zzvk%usreA%MN&7fZ%tCgH!iTKWzqh29YucQfjLUA';
-const flag = '!order';
+    let waves = rawZones.replace(/\(Middle\)/gim, "M")
+    .replace(/\(Right\)/gim, "R")
+    .replace(/\(Left\)/gim, "L")
+    .replace(/\(Deep\)/gim, "D")
+    .replace(/\(Lighthouse\)/gim, "LH")
+    .replace(/\(Ledge\)/gim, "Ledge")
+    .split(/\d./g);
+    waves = waves.filter(wave => wave.length > 10).map(wave => wave.replace('.', '').trim());
 
-module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('screenshots')
-		.setDescription('Submit update and generate then post screenshots.'),
-	async execute(interaction) {
-        
-        await interaction.reply(`Generating screenshots ETA ${delay/1000}s.`);
-
-        const initiator = interaction.user;
-        const channel = interaction.channel;
-
-        const messages = await channel.messages.fetch({limit:20});
-        const message = messages.filter(m => m.content.startsWith(flag)).first();
-
-        if(!message){
-            await interaction.reply(`Could not find any order messages with flag !order.`);
-            return
+    let zones = '';
+    for (let i = 0; i < waves.length; i++) {
+        waves[i] = waves[i].replace(/[\d.]+|\([\s\w\/]*\)/gim, '');
+        if (i === waves.length - 1) {
+            zones += waves[i].trim();
+        } else {
+            zones += waves[i].trim() + '\n';
         }
-
-        let data = await prepareData(message.content);
-
-        if(data.errors){
-
-            const errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
-            initiator.send(errorMessage);
-            console.log(errorMessage);
-
-        }else{
-
-            let response = await postData(data, secret);
-
-            if(!response.ok){
-
-                initiator.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
-                console.log(`Response Status: ${response.status}| ${response.statusText}`);
-
-            }else{
-
-                console.log('Request was sent successfully.');
-                countdown(delay-3000);
-
-                setTimeout( async () => {
-
-                    try {
-                        const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', secret);
-                        let links = "";
-
-                        if(generatedLinks){
-
-                            Object.values(generatedLinks).forEach( async (link,index) => {
-                                let fullURL = 'https://gotlegends.info'+link;
-                                links = links.concat(fullURL+"\n");
-                            })
-
-                            await channel.send(links);
-                            console.log('\n----------------Screenshots sent.')
-
-                        }
-                    } catch (error) {
-
-                        console.error(`Failed to send images to ${channel.name}: ${error}`);
-                        await interaction.reply(`Failed to send images to ${channel.name}.`);
-
-                    }
-
-                },
-                delay
-                )
-            }
-
-        }
-       
-	},
-};
-
-async function prepareData(message){    
-    let data = {
-        username: 'discordBot',
-        map_id: await getMapId(message),
-        week: getWeek(message),
-        modifier_id: await getModifier(message),
-        hazard_id: await getHazard(message),
-        zones: getZones(message),
-        credits: getCredits(message),
-        version: 2.18
-    };
-
-
-    return validateData(data);
+    }
+    return zones;
 }
 
-async function postData(data, secret){
-    let staticTestingData = { 
-        username: 'discordBot',
-        map_id: 5,
-        week: 7,
-        modifier: 11,
-        hazard: 15,
-        zones: `Boulder , Cliff LH, Obelisk
-        Side, Obelisk, Boulder
-        Boulder LH, Side, Obelisk
-        Boulder , Cliff LH, Obelisk
-        Side, Obelisk, Side
-        Obelisk, Cliff , Side
-        Boulder LH, Side, Obelisk
-        Cliff , Side, Boulder
-        Boulder LH, Cliff , Boulder
-        Obelisk, Cliff , Boulder
-        Boulder LH, Obelisk, Obelisk
-        Boulder , Cliff LH, Obelisk
-        Obelisk, Obelisk, Boulder
-        Obelisk, Side, Cliff LH
-        Obelisk, Cliff LH, Boulder LH`,
-        credits: "AfunNightmare",
-        version: 2.18
-    };
-    let response = await fetch('https://gotlegends.info/bot/nms-order/create', {
-        method:'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer '+secret
-        },
-        body: JSON.stringify(data)
-    });
-    console.log(`Post Status: ${response.status}`)
-    return response;
+function extractNameFromURL(url){
+    const urlParts = url.split('/');
+    const fileName = urlParts[urlParts.length - 1]//.split('.')[0];
+    return fileName;
 }
 
-async function getMapId(message) {
+function getMapId(message, maps) {
     const staticMaps = [
         {
             id: 1 ,
@@ -159,7 +54,6 @@ async function getMapId(message) {
             title: 'Blood and Steel'
         },
     ];
-    const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret);
     let map_id = -1;
     for (let i = 0; i < maps.length; i++) {
         if (message.toLowerCase().includes(maps[i].title.toLowerCase())) {
@@ -170,7 +64,7 @@ async function getMapId(message) {
     return map_id;
 }
 
-async function getModifier(message) {
+function getModifier(message, modifiers) {
     const staticModifiers = [
         {
             id:1,
@@ -201,7 +95,6 @@ async function getModifier(message) {
             title: 'Barbed Arrows'
         }
     ];
-    const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/mods', secret);
     let mod_id = -1;
     for (let i = 0; i < modifiers.length; i++) {
         let regex = new RegExp(`${modifiers[i].title} | ${modifiers[i].title.slice(0, 5)}`, 'gim');
@@ -213,7 +106,7 @@ async function getModifier(message) {
     return mod_id;
 }
 
-async function getHazard(message) {
+function getHazard(message, hazards) {
     const staticHazards = [
         {
             id: 13,
@@ -228,7 +121,6 @@ async function getHazard(message) {
             title: 'Disciples Of Iyo'
         },
     ];
-    const hazards = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret);
     let hazard_id = -1;
     for (let i = 0; i < hazards.length; i++) {
         let regex = new RegExp(`${hazards[i].title} | ${hazards[i].title.slice(0, 5)}`, 'gim');
@@ -255,13 +147,14 @@ function getWeek(message) {
 
 function getZones(message){
     let zones = '';
-    let lines = message.replace(/\(Middle\)/gim, "M");
-        lines = lines.replace(/\(Right\)/gim, "R");
-        lines = lines.replace(/\(Left\)/gim, "L");
-        lines = lines.replace(/\(Deep\)/gim, "D");
-        lines = lines.replace(/\(Lighthouse\)/gim, "LH");
-        lines = lines.replace(/\(Ledge\)/gim, "Ledge");
-        lines = lines.split('\n');
+    let lines = message.replace(/\(Middle\)/gim, "M")
+        .replace(/\(Right\)/gim, "R")
+        .replace(/\(Left\)/gim, "L")
+        .replace(/\(Deep\)/gim, "D")
+        .replace(/\(Lighthouse\)/gim, "LH")
+        .replace(/\(Ledge\)/gim, "Ledge")
+        .split('\n');
+
         let startingIndex = -1;
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes(',')) {
@@ -298,6 +191,22 @@ function getCredits(message){
     return credits;
 }
 
+function prepareData(message, apiData){    
+    let data = {
+        username: 'waves-bot',
+        map_id: getMapId(message, apiData.maps),
+        week: getWeek(message),
+        modifier_id: getModifier(message, apiData.modifiers),
+        hazard_id: getHazard(message, apiData.hazards),
+        zones: getZones(message),
+        credits: getCredits(message),
+        version: 2.18
+    };
+
+
+    return validateData(data);
+}
+
 function validateData(data){
     let validatedData = data;
     let errors = [];
@@ -328,6 +237,43 @@ function validateData(data){
     return validatedData;
 }
 
+async function postData(data, secret){
+    let staticTestingData = { 
+        username: 'waves-bot',
+        map_id: 5,
+        week: 7,
+        modifier: 11,
+        hazard: 15,
+        zones: `Boulder , Cliff LH, Obelisk
+        Side, Obelisk, Boulder
+        Boulder LH, Side, Obelisk
+        Boulder , Cliff LH, Obelisk
+        Side, Obelisk, Side
+        Obelisk, Cliff , Side
+        Boulder LH, Side, Obelisk
+        Cliff , Side, Boulder
+        Boulder LH, Cliff , Boulder
+        Obelisk, Cliff , Boulder
+        Boulder LH, Obelisk, Obelisk
+        Boulder , Cliff LH, Obelisk
+        Obelisk, Obelisk, Boulder
+        Obelisk, Side, Cliff LH
+        Obelisk, Cliff LH, Boulder LH`,
+        credits: "AfunNightmare",
+        version: 2.18
+    };
+    let response = await fetch('https://gotlegends.info/bot/nms-order/create', {
+        method:'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer '+secret
+        },
+        body: JSON.stringify(data)
+    });
+    console.log(`Post Status: ${response.status}`)
+    return response;
+}
+
 function constructErrorMessage(errors){
     let message = "";
 
@@ -339,15 +285,63 @@ function constructErrorMessage(errors){
 }
 
 async function fetchResource(url, secret){
+    console.log(`\nSending GET request to --> ${url}`)
     const response = await fetch(url, {headers: {'Authorization': 'Bearer '+secret}});
+    if(response.status != 200){
+        console.log(`Responded with ${response.status} : ${response.statusText}`);
+        return response;
+    }
+    console.log(`Responded with ${response.status} : ${response.statusText}`);
     const data = await response.json()
     return data;
 }
 
-  
-function countdown(time) {
+async function fetchBlob(url, secret){
+    const response = await fetch(url, {headers: {'Authorization': 'Bearer '+secret}});
+    const blob = await response.blob()
+    return blob;
+}
+
+async function getApiData(secret){
+	const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret);
+	const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/mods', secret);
+	const hazards = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret);
+	return {maps, modifiers, hazards};
+}
+async function getApiMaps(secret){
+	const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret);
+	return maps;
+}
+
+async function getApiModifiers(secret){
+	const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/mods', secret);
+	return modifiers;
+}
+
+async function getApiHazards(secret){
+	const hazards = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret);
+	return hazards;
+}
+
+async function downloadImages(urls, secret){
+    const images = [];
+
+    urls.forEach(async (url) => {
+       try{
+            const imageBlob = await fetchBlob(url, secret);
+            const imageAttachment = {attachment: imageBlob, name: extractNameFromURL(url)};
+            images.push(imageAttachment);
+       }catch(error){
+            console.log(`Failed to download image from ${url}`);
+       }
+    })
+
+    return images;
+}
+
+function countdown(message, time) {
     let countdownTimer = setInterval(function() {
-      process.stdout.write('\rTime Remaining before sending screenshots: ' + (time / 1000) + 's   ');
+      process.stdout.write(`\r${message}: ` + (time / 1000) + 's   ');
       time = time - 1000;
   
       if (time < 0) {
@@ -356,6 +350,29 @@ function countdown(time) {
       }
     }, 1000);
   }
-  
-  
-  
+
+
+
+module.exports = {
+    fetchResource, 
+    prepareData, 
+    formatRawZones,
+    validateData, 
+    postData,
+    extractNameFromURL, 
+    getMapId, 
+    getWeek, 
+    getModifier, 
+    getHazard, 
+    getZones, 
+    getCredits,
+    fetchBlob, 
+    getApiData,
+    getApiMaps,
+    getApiModifiers,
+    getApiHazards,
+    downloadImages,
+    countdown, 
+    constructErrorMessage, 
+
+}
