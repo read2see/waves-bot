@@ -2,10 +2,12 @@ const { SlashCommandBuilder } = require('discord.js');
 const { api_secret } = require('../../config.json');
 const { formatRawZones, fetchResource, extractNameFromURL, countdown, postData } = require('../../helpers.js');
 
-const delay = 45000;
-const postGenerationResponseMessage = 'NMS Waves Screenshots:';
+const delay = 60000;
+const COOL_DDOWN = 45;
+const DEFAULT_COMPLETION_MESSAGE = 'NMS Waves Screenshots:';
 
 module.exports = {
+	cooldown: COOL_DDOWN ,
 	data: new SlashCommandBuilder()
 			.setName('update')
 			.setDescription('Update using the message that initiated the command for data input.')
@@ -107,11 +109,34 @@ module.exports = {
 				{name: 'omv-l', value: 'omv-l'},
 			)
 		)
-			,
+		.addStringOption( option => 
+			option.setName('on-completion')
+			.setDescription('Set custom completion message.')
+			
+		)
+		.addBooleanOption(option =>
+			option.setName('visible-only-to-me')
+			.setDescription('Set the bots message visibility to yourself alone.')
+		)
+		.addBooleanOption(option =>
+            option.setName('delete-last-post')
+            .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
+        )
+		.addChannelOption(option =>
+			option.setName('channel')
+				.setDescription('The channel to reply at. defaults to current channel.')
+				)
+		,
 
 	async execute(interaction) {
 
-		await interaction.deferReply();
+		await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
+		
+		const botUser = interaction.client.user;
+        if(interaction.options.getBoolean('delete-last-post')){
+            (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id).first().delete();
+        }
+		
 
 		console.log("Preparing data to be sent...");
 		let data = {
@@ -127,16 +152,18 @@ module.exports = {
 		
 		console.log("Sending request...");
 		if(data.zones.split('\n').join(',').split(',').length < 44){
-			await interaction.reply(`Oni lord tracked me and something went wrong. Only tracked ${data.zones.split('\n').join(',').split(',').length} zones.` );
-			interaction.user.send('Missing some zones, the matching process may have failed to catch your format, double check your inputs and try again.');
+			await interaction.deleteReply();
+			interaction.user.send(`Oni lord tracked me and something went wrong. Only tracked ${data.zones.split('\n').join(',').split(',').length} zones.
+						\nMissing some zones, the matching process may have failed to catch your format, double check your inputs and try again.`);
 			console.log(`Zones came up short ${data.zones.split('\n').join(',').split(',').length} < ${44}.`);
 			return
 		}
 
         let response = await postData(data, api_secret);
-		await interaction.editReply(`Generating screenshots ETA ${delay/1000}s.`);
+		await interaction.editReply({content:`Generating screenshots ETA ${delay/1000}s.`});
 
 		if(!response.ok){
+			await interaction.deleteReply();
 			interaction.user.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
 			console.log(`Response Status: ${response.status}| ${response.statusText}`);
 		}else{
@@ -162,11 +189,27 @@ module.exports = {
 							linksMessage = linksMessage.concat(fullURL+"\n");
 							imageAttachments.push({attachment: fullURL, name: extractNameFromURL(fullURL)});
 						})
-						await interaction.editReply({content: postGenerationResponseMessage, files: imageAttachments});
+
+						if(interaction.options.getString('on-completion')){
+							if(interaction.options.getChannel('channel')){
+								await interaction.deleteReply();
+								interaction.options.getChannel('channel').send({content: interaction.options.getString('on-completion'), files: imageAttachments});
+							}else{
+								await interaction.editReply({content: interaction.options.getString('on-completion'), files: imageAttachments});
+							}
+						}else{
+							if(interaction.options.getChannel('channel')){
+								await interaction.deleteReply();
+								interaction.options.getChannel('channel').send({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
+							}else{
+								await interaction.editReply({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
+							}
+						}
+						
 						console.log('\n----------------Screenshots sent.')
 					}
 				} catch (error) {
-
+					await interaction.deleteReply();
 					console.error(`Failed to send images to ${channel.name}: ${error}`);
 					interaction.user.send(`Failed to send images to ${channel.name}.`);
 

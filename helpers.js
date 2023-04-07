@@ -191,6 +191,12 @@ function getCredits(message){
     return credits;
 }
 
+function getGameVersion(message){
+    // Not implemented
+    console.log('getGameVersion() is not implemented yet.');
+    return false;
+}
+
 function prepareData(message, apiData){    
     let data = {
         username: 'waves-bot',
@@ -366,6 +372,7 @@ module.exports = {
     getHazard, 
     getZones, 
     getCredits,
+    getGameVersion,
     fetchBlob, 
     getApiData,
     getApiMaps,

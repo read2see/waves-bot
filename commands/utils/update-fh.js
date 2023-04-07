@@ -3,16 +3,23 @@ const { api_secret } = require('../../config.json');
 const { fetchResource, prepareData, postData, getApiData, extractNameFromURL, countdown,
      constructErrorMessage } = require('../../helpers.js');
 
-const delay = 45000;
+const delay = 60000;
+const COOL_DDOWN = 45;
 const totalMessagesToFetch = 20;
 const secret = api_secret;
-const flag = '!waves';
-const postGenerationResponseMessage = 'NMS Waves Screenshots:';
+const DEFAULT_FLAG = '!waves';
+const DEFAULT_COMPLETION_MESSAGE = 'NMS Waves Screenshots:';
 
 module.exports = {
+    cooldown: COOL_DDOWN ,
 	data: new SlashCommandBuilder()
 		.setName('update-fh')
-		.setDescription(`Update with flagged[${flag}] messages, screenshots, and posting.`)
+		.setDescription(`Update with flagged[${DEFAULT_FLAG}] messages, screenshots, and posting.`)
+        .addStringOption( option => 
+			option.setName('on-completion')
+			.setDescription('Set custom completion message.')
+			
+		)
         .addStringOption(option =>
 			option.setName('waves')
 				.setDescription('The weekly waves raw text.'))
@@ -49,15 +56,36 @@ module.exports = {
 				{name: 'omv-l', value: 'omv-l'},
 			)
 		)
-                
+        .addStringOption( option => 
+            option.setName('flag')
+            .setDescription(`Set a custom flag to track, default is [${DEFAULT_FLAG}].`)
+            )
+        .addBooleanOption(option =>
+            option.setName('visible-only-to-me')
+            .setDescription('Set the bots message visibility to yourself alone.')
+        )
+        .addBooleanOption(option =>
+            option.setName('delete-last-post')
+            .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
+        )
+        .addChannelOption(option =>
+            option.setName('channel')
+                .setDescription('The channel to reply at. defaults to current channel.')
+                )
     ,
 
 	async execute(interaction) {
     
+        await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
+        
+        const botUser = interaction.client.user;
+        if(interaction.options.getBoolean('delete-last-post')){
+            (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id).first().delete();
+        }
+
         const initiator = interaction.user;
         const channel = interaction.channel;
         
-        await interaction.deferReply();
         
         const waves = await interaction.options.getString('waves');
 
@@ -65,10 +93,24 @@ module.exports = {
         if(!waves){
             console.log(`Fetching recent ${totalMessagesToFetch} messages...`);
             const messages = await channel.messages.fetch({limit:totalMessagesToFetch});
-            message = messages.filter(m => m.content.startsWith(flag)).sort((msgA, msgB) =>  msgB.createdTimestamp - msgA.createdTimestamp).first().content;
+            let currentFlag = null;
+
+            if(interaction.options.getString('flag')){
+                currentFlag = interaction.options.getString('flag');
+            }else{
+                currentFlag = DEFAULT_FLAG;
+            }
+
+            try{
+                message = messages.filter(m => m.content.startsWith(currentFlag)).sort((msgA, msgB) =>  msgB.createdTimestamp - msgA.createdTimestamp).first().content;
+            }catch(error){
+                console.log(error);
+                initiator.send(`Could not find any waves messages with flag ${currentFlag}, or the message may be incomplete.`);
+                return
+            }
             
-            if(!message || !message.content.includes(flag) || message.content.length === flag.length || message.content.length < 300){
-                initiator.send(`Could not find any waves messages with flag ${flag}, or the message may be incomplete.`);
+            if(!message || !message.includes(currentFlag) || message.length === currentFlag.length || message.length < 300){
+                initiator.send(`Could not find any waves messages with flag ${currentFlag}, or the message may be incomplete.`);
                 return
             }
         }else{
@@ -83,16 +125,17 @@ module.exports = {
         let data = prepareData(message, apiData);
         
         if(data.errors){
+            await interaction.deleteReply();
             const errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
             initiator.send(errorMessage);
             console.log(errorMessage);
-            await editReply(errorMessage);
         }else{
             console.log("Sending request...");
             let response = await postData(data, secret);
-            await interaction.editReply(`Generating screenshots ETA ${delay/1000}s.`);
+            await interaction.editReply({content:`Generating screenshots ETA ${delay/1000}s.`, ephemeral: interaction.options.getBoolean('visible-only-to-me')});
 
             if(!response.ok){
+                await interaction.deleteReply();
                 initiator.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
                 console.log(`Response Status: ${response.status}| ${response.statusText}`);
             }else{
@@ -105,7 +148,6 @@ module.exports = {
                     try {
                         const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', secret);
                         let linksMessage = "";
-                        let linksArray = [];
                         let imageAttachments = [];
                         if(generatedLinks){
                             const exclusions = [
@@ -113,27 +155,37 @@ module.exports = {
                                 await interaction.options.getString('exception-2'),
                                 await interaction.options.getString('exception-3'),
                             ]
-                            Object.values(screenshotsLinks).filter(screenshot => !screenshot.includes(exclusions[0]) && !screenshot.includes(exclusions[1]) && !screenshot.includes(exclusions[2])).forEach( async (link,index) => {
+                            Object.values(generatedLinks).filter(screenshot => !screenshot.includes(exclusions[0]) && !screenshot.includes(exclusions[1]) && !screenshot.includes(exclusions[2])).forEach( async (link,index) => {
                                 let fullURL = 'https://gotlegends.info'+link;
                                 linksMessage = linksMessage.concat(fullURL+"\n");
-                                linksArray.push(fullURL);
                                 imageAttachments.push({attachment: fullURL, name: extractNameFromURL(fullURL)});
                             })
-                            await interaction.editReply({content: postGenerationResponseMessage, files: imageAttachments});
+                            if(interaction.options.getString('on-completion')){
+                                if(interaction.options.getChannel('channel')){
+                                    await interaction.deleteReply();
+                                    interaction.options.getChannel('channel').send({content: interaction.options.getString('on-completion'), files: imageAttachments});
+                                }else{
+                                    await interaction.editReply({content: interaction.options.getString('on-completion'), files: imageAttachments});
+                                }
+                            }else{
+                                if(interaction.options.getChannel('channel')){
+                                    await interaction.deleteReply();
+                                    interaction.options.getChannel('channel').send({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
+                                }else{
+                                    await interaction.editReply({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
+                                }
+                            }
                             console.log('\n----------------Screenshots sent.')
                         }
                     } catch (error) {
-
+                        await interaction.deleteReply();
                         console.error(`Failed to send images to ${channel.name}: ${error}`);
                         initiator.send(`Failed to send images to ${channel.name}.`);
-
                     }
-
                 },
                 delay
                 )
             }
-
         }
        
 	},
