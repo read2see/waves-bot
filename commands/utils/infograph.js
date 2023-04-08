@@ -10,18 +10,19 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('infograph')
 		.setDescription('Posts NMS Waves Infograph.')
+		.addChannelOption(option =>
+			option.setName('channel')
+				.setDescription('The channel to reply at. defaults to current channel.')
+		)
 		.addStringOption( option => 
 			option.setName('on-completion')
 			.setDescription('Set custom completion message.')
-			
 		)
 		.addBooleanOption(option =>
 			option.setName('visible-only-to-me')
 			.setDescription('Set the bots message visibility to yourself alone.')
 		)
-		.addChannelOption(option =>
-			option.setName('channel')
-				.setDescription('The channel to reply at. defaults to current channel.'))
+
 		,
 	async execute(interaction) {
 

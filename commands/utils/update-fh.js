@@ -15,14 +15,26 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('update-fh')
 		.setDescription(`Update with flagged[${DEFAULT_FLAG}] messages, screenshots, and posting.`)
+        .addChannelOption(option =>
+            option.setName('channel')
+                .setDescription('The channel to reply at. defaults to current channel.')
+        )
         .addStringOption( option => 
-			option.setName('on-completion')
-			.setDescription('Set custom completion message.')
-			
-		)
+            option.setName('on-completion')
+            .setDescription('Set custom completion message.')
+        )
+        .addBooleanOption(option =>
+            option.setName('visible-only-to-me')
+            .setDescription('Set the bots message visibility to yourself alone.')
+        )
+        .addStringOption( option => 
+            option.setName('flag')
+            .setDescription(`Set a custom flag to track, default is [${DEFAULT_FLAG}].`)
+        )
         .addStringOption(option =>
 			option.setName('waves')
-				.setDescription('The weekly waves raw text.'))
+				.setDescription('The weekly waves raw text.')
+        )
         .addStringOption( option => 
 			option.setName('exception-1')
 			.setDescription('Choose a screenshot to exclude.')
@@ -56,28 +68,16 @@ module.exports = {
 				{name: 'omv-l', value: 'omv-l'},
 			)
 		)
-        .addStringOption( option => 
-            option.setName('flag')
-            .setDescription(`Set a custom flag to track, default is [${DEFAULT_FLAG}].`)
-            )
-        .addBooleanOption(option =>
-            option.setName('visible-only-to-me')
-            .setDescription('Set the bots message visibility to yourself alone.')
-        )
         .addBooleanOption(option =>
             option.setName('delete-last-post')
             .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
         )
-        .addChannelOption(option =>
-            option.setName('channel')
-                .setDescription('The channel to reply at. defaults to current channel.')
-                )
     ,
 
 	async execute(interaction) {
     
         await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
-        
+
         const botUser = interaction.client.user;
         if(interaction.options.getBoolean('delete-last-post')){
             (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id).first().delete();
