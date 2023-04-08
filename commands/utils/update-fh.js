@@ -6,7 +6,6 @@ const { fetchResource, prepareData, postData, getApiData, extractNameFromURL, co
 const delay = 60000;
 const COOL_DDOWN = 45;
 const totalMessagesToFetch = 20;
-const secret = api_secret;
 const DEFAULT_FLAG = '!waves';
 const DEFAULT_COMPLETION_MESSAGE = 'NMS Waves Screenshots:';
 
@@ -73,7 +72,6 @@ module.exports = {
             .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
         )
     ,
-
 	async execute(interaction) {
     
         await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
@@ -82,17 +80,14 @@ module.exports = {
         if(interaction.options.getBoolean('delete-last-post')){
             (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id).first().delete();
         }
-
-        const initiator = interaction.user;
-        const channel = interaction.channel;
-        
         
         const waves = await interaction.options.getString('waves');
 
         let message = null;
+
         if(!waves){
             console.log(`Fetching recent ${totalMessagesToFetch} messages...`);
-            const messages = await channel.messages.fetch({limit:totalMessagesToFetch});
+            const messages = await interaction.channel.messages.fetch({limit:totalMessagesToFetch});
             let currentFlag = null;
 
             if(interaction.options.getString('flag')){
@@ -102,51 +97,48 @@ module.exports = {
             }
 
             try{
-                message = messages.filter(m => m.content.startsWith(currentFlag)).sort((msgA, msgB) =>  msgB.createdTimestamp - msgA.createdTimestamp).first().content;
+                message = messages.filter(m => m.content.includes(currentFlag)).sort((msgA, msgB) =>  msgB.createdTimestamp - msgA.createdTimestamp).first().content;
             }catch(error){
                 console.log(error);
-                initiator.send(`Could not find any waves messages with flag ${currentFlag}, or the message may be incomplete.`);
+                interaction.user.send(`Could not find any waves messages with flag ${currentFlag}, or the message may be incomplete.`);
                 return
             }
             
             if(!message || !message.includes(currentFlag) || message.length === currentFlag.length || message.length < 300){
-                initiator.send(`Could not find any waves messages with flag ${currentFlag}, or the message may be incomplete.`);
+                interaction.user.send(`Could not find any waves messages with flag ${currentFlag}, or the message may be incomplete.`);
                 return
             }
         }else{
             await interaction.deleteReply();
-            initiator.send('/update-fh with waves option development is still being explored.');
+            interaction.user.send('/update-fh with waves option development is still being explored.');
             return
         }
         
         console.log("Preparing data to be sent...");
 
-        const apiData = await getApiData(secret);
+        const apiData = await getApiData(api_secret);
         let data = prepareData(message, apiData);
         
         if(data.errors){
             await interaction.deleteReply();
             const errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
-            initiator.send(errorMessage);
+            interaction.user.send(errorMessage);
             console.log(errorMessage);
         }else{
-            console.log("Sending request...");
-            let response = await postData(data, secret);
+            let response = await postData(data, api_secret, "\nSending POST request to submit the new updates and generating the screenshots......");
             await interaction.editReply({content:`Generating screenshots ETA ${delay/1000}s.`, ephemeral: interaction.options.getBoolean('visible-only-to-me')});
 
             if(!response.ok){
                 await interaction.deleteReply();
-                initiator.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
-                console.log(`Response Status: ${response.status}| ${response.statusText}`);
+                interaction.user.send(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
             }else{
-
-                console.log('Request was sent successfully.');
                 countdown('Time Remaining before sending screenshots', delay-3000);
 
                 setTimeout( async () => {
 
                     try {
-                        const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', secret);
+                        const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', api_secret, '\nFetching generated screenshots...');
+
                         let linksMessage = "";
                         let imageAttachments = [];
                         if(generatedLinks){
@@ -179,8 +171,8 @@ module.exports = {
                         }
                     } catch (error) {
                         await interaction.deleteReply();
-                        console.error(`Failed to send images to ${channel.name}: ${error}`);
-                        initiator.send(`Failed to send images to ${channel.name}.`);
+                        console.error(`Failed to send images to ${interaction.channel.name}: ${error}`);
+                        interaction.user.send(`Failed to send images to ${interaction.channel.name}.`);
                     }
                 },
                 delay
