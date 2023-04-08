@@ -71,6 +71,13 @@ module.exports = {
             option.setName('delete-last-post')
             .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
         )
+        .addIntegerOption(option =>
+            option.setName('history-messages-amount')
+            .setDescription('Set the amount of recent messages to filter through, default [20], maximum [50].')
+            .setRequired(false)
+            .setMaxValue(50)
+            .setMinValue(1)
+        )
     ,
 	async execute(interaction) {
     
@@ -86,10 +93,18 @@ module.exports = {
         let message = null;
 
         if(!waves){
-            console.log(`Fetching recent ${totalMessagesToFetch} messages...`);
-            const messages = await interaction.channel.messages.fetch({limit:totalMessagesToFetch});
-            let currentFlag = null;
 
+            const customAmount = interaction.options.getInteger('history-messages-amount');
+            let messages = null;
+            if(customAmount){
+                console.log(`Fetching recent ${customAmount} messages...`);
+                messages = await interaction.channel.messages.fetch({ limit: customAmount });
+            }else{
+                console.log(`Fetching recent ${totalMessagesToFetch} messages...`);
+                messages = await interaction.channel.messages.fetch({ limit: totalMessagesToFetch });
+            }
+
+            let currentFlag = null;
             if(interaction.options.getString('flag')){
                 currentFlag = interaction.options.getString('flag');
             }else{
