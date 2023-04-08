@@ -243,7 +243,12 @@ function validateData(data){
     return validatedData;
 }
 
-async function postData(data, secret){
+async function postData(data, secret, optionalLog = null){
+
+    if(optionalLog){
+        console.log(optionalLog);
+    }
+
     let staticTestingData = { 
         username: 'waves-bot',
         map_id: 5,
@@ -276,7 +281,12 @@ async function postData(data, secret){
         },
         body: JSON.stringify(data)
     });
+    if(response.status != 200){
+        console.log(`Responded with ${response.status} : ${response.statusText}\n`);
+        return;
+    }
     console.log(`Post Status: ${response.status}`)
+    console.log('Request was sent successfully.');
     return response;
 }
 
@@ -290,14 +300,20 @@ function constructErrorMessage(errors){
     return message;
 }
 
-async function fetchResource(url, secret){
-    console.log(`\nSending GET request to --> ${url}`)
+async function fetchResource(url, secret, optionalLog = null){
+
+    if(optionalLog){
+        console.log(optionalLog);
+    }
+
+    console.log(`Sending GET request to --> ${url}`)
     const response = await fetch(url, {headers: {'Authorization': 'Bearer '+secret}});
     if(response.status != 200){
-        console.log(`Responded with ${response.status} : ${response.statusText}`);
+        console.log(`Responded with ${response.status} : ${response.statusText}\n`);
         return response;
     }
     console.log(`Responded with ${response.status} : ${response.statusText}`);
+    console.log('Request was sent successfully.');
     const data = await response.json()
     return data;
 }
@@ -309,11 +325,16 @@ async function fetchBlob(url, secret){
 }
 
 async function getApiData(secret){
-	const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret);
-	const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/mods', secret);
-	const hazards = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret);
+
+	const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret, '\nFetching maps...');
+
+	const modifiers = await fetchResource('https://gotlegends.info/bot/nms-order/mods', secret, '\nFetching modifiers...');
+
+	const hazards = await fetchResource('https://gotlegends.info/bot/nms-order/hazards', secret, '\nFetching hazards...');
+
 	return {maps, modifiers, hazards};
 }
+
 async function getApiMaps(secret){
 	const maps = await fetchResource('https://gotlegends.info/bot/nms-order/maps', secret);
 	return maps;
