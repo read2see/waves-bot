@@ -11,6 +11,18 @@ module.exports = {
 	data: new SlashCommandBuilder()
 			.setName('update')
 			.setDescription('Update using the message that initiated the command for data input.')
+			.addChannelOption(option =>
+				option.setName('channel')
+					.setDescription('The channel to reply at. defaults to current channel.')
+					)
+			.addStringOption( option => 
+				option.setName('on-completion')
+				.setDescription('Set custom completion message.')
+			)
+			.addBooleanOption(option =>
+				option.setName('visible-only-to-me')
+				.setDescription('Set the bot\'s message visibility to yourself alone.')
+			)
 			.addIntegerOption(option =>
 				option.setName('week')
 					.setDescription('Current week.')
