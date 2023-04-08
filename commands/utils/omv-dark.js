@@ -2,11 +2,11 @@ const { SlashCommandBuilder } = require('discord.js');
 const { api_secret } = require('../../config.json');
 const { fetchResource, extractNameFromURL } = require('../../helpers.js');
 
-const COOL_DDOWN = 10
+const COOL_DDOWN = 30;
 const DEFAULT_COMPLETION_MESSAGE = 'Recent Old man version - dark:';
 
 module.exports = {
-	coooldown: COOL_DDOWN,
+	cooldown: COOL_DDOWN,
 	data: new SlashCommandBuilder()
 		.setName('omv-d')
 		.setDescription('Posts NMS Waves Old man version dark theme.')

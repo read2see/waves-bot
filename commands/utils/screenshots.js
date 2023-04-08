@@ -2,10 +2,10 @@ const { SlashCommandBuilder } = require('discord.js');
 const { api_secret } = require('../../config.json');
 const { fetchResource, extractNameFromURL } = require('../../helpers.js');
 
-const COOL_DDOWN = 10
+const COOL_DDOWN = 30;
 const DEFAULT_COMPLETION_MESSAGE = 'Recent NMS Waves Screenshots:';
 module.exports = {
-	coooldown: COOL_DDOWN,
+	cooldown: COOL_DDOWN,
 	data: new SlashCommandBuilder()
 		.setName('screenshots')
 		.setDescription('Posts generated screenshots if they exist.')

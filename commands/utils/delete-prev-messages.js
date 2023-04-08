@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require('discord.js');
 
+const COOL_DDOWN = 1800;
 module.exports = {
+    cooldown: COOL_DDOWN,
 	data: new SlashCommandBuilder()
 		.setName('delete-previous-messages')
 		.setDescription('Delete a set amount of recent bot\'s messages.')
@@ -19,13 +21,19 @@ module.exports = {
                 )
             ),
 	async execute(interaction) {
-		await interaction.reply({content: 'The messages died on the beach.', ephemeral: true});
+        const amount = interaction.options.getInteger('amount');
         const botUser = interaction.client.user;
-        if(interaction.options.getInteger('amount')){
-            (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id)
-                .delete(
-                    interaction.options.getInteger('delete-previous-posts')
-                );
+        await interaction.deferReply({ephemeral: true});
+        if(amount){
+            let toDelete =  (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id).sort((a, b) => b.createdTimestamp - a.createdTimestamp );
+            for(let i = 0; i < amount; i++){
+                if(toDelete.at(i)){
+                    toDelete.at(i).delete();
+                }else{
+                    break;
+                }
+            }
         }
+        await interaction.editReply({content: `${amount} message(s) died on the beach.`});
 	},
 };
