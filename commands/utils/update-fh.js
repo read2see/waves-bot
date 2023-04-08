@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { api_secret } = require('../../config.json');
 const { fetchResource, prepareData, postData, getApiData, extractNameFromURL, countdown,
-     constructErrorMessage } = require('../../helpers.js');
+     constructErrorMessage} = require('../../helpers.js');
 
 const delay = 60000;
 const COOL_DDOWN = 45;
@@ -72,11 +72,11 @@ module.exports = {
             .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
         )
         .addIntegerOption(option =>
-            option.setName('history-messages-amount')
+            option.setName('history-amount')
             .setDescription('Set the amount of recent messages to filter through, default [20], maximum [50].')
             .setRequired(false)
-            .setMaxValue(50)
             .setMinValue(1)
+            .setMaxValue(50)
         )
     ,
 	async execute(interaction) {
@@ -84,7 +84,7 @@ module.exports = {
         await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
 
         const botUser = interaction.client.user;
-        if(interaction.options.getBoolean('delete-last-post')){
+        if(interaction.options.getInteger('delete-last-post')){
             (await interaction.channel.messages.fetch({ limit: 20 })).filter(m => m.author.id === botUser.id).first().delete();
         }
         
@@ -124,11 +124,11 @@ module.exports = {
                 return
             }
         }else{
-            await interaction.deleteReply();
-            interaction.user.send('/update-fh with waves option development is still being explored.');
-            return
+
+            message = waves;
+
         }
-        
+
         console.log("Preparing data to be sent...");
 
         const apiData = await getApiData(api_secret);

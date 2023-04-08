@@ -1,25 +1,3 @@
-function formatRawZones(rawZones){
-
-    let waves = rawZones.replace(/\(Middle\)/gim, "M")
-    .replace(/\(Right\)/gim, "R")
-    .replace(/\(Left\)/gim, "L")
-    .replace(/\(Deep\)/gim, "D")
-    .replace(/\(Lighthouse\)/gim, "LH")
-    .replace(/\(Ledge\)/gim, "Ledge")
-    .split(/\d./g);
-    waves = waves.filter(wave => wave.length > 10).map(wave => wave.replace('.', '').trim());
-
-    let zones = '';
-    for (let i = 0; i < waves.length; i++) {
-        waves[i] = waves[i].replace(/[\d.]+|\([\s\w\/]*\)/gim, '');
-        if (i === waves.length - 1) {
-            zones += waves[i].trim();
-        } else {
-            zones += waves[i].trim() + '\n';
-        }
-    }
-    return zones;
-}
 
 function extractNameFromURL(url){
     const urlParts = url.split('/');
@@ -180,6 +158,43 @@ function getZones(message){
     return zones;
 }
 
+function formatRawZones(rawZones){
+
+    let waves = rawZones.replace(/\(Middle\)/gim, "M")
+    .replace(/\(Right\)/gim, "R")
+    .replace(/\(Left\)/gim, "L")
+    .replace(/\(Deep\)/gim, "D")
+    .replace(/\(Lighthouse\)/gim, "LH")
+    .replace(/\(Ledge\)/gim, "Ledge")
+    .split(/\d\./g);
+    waves = waves.filter(wave => wave.length > 10 && wave.split(',').length >= 3).map(wave => wave.trim());
+
+    if(waves.length != 15){
+        console.log("Could not match zones, unrecognized format for the matching algorithm detected.")
+    }
+
+    if(waves[14].split(',').length > 3){
+        const finalWave = waves[14].split(',');
+        lastZone = finalWave[2].trim().split(/\s+/);
+        lastZone.pop();
+        lastZone = lastZone.join(' ');
+        let finalWaveZones = [finalWave[0], finalWave[1], lastZone];
+        waves[14] = finalWaveZones.join(', ').trim();
+    }
+
+    let zones = '';
+    for (let i = 0; i < waves.length; i++) {
+        waves[i] = waves[i].replace(/[\d.]+|\([\s\w\/]*\)/gim, '');
+        if (i === waves.length - 1) {
+            zones += waves[i].trim();
+        } else {
+            zones += waves[i].trim() + '\n';
+        }
+    }
+
+    return zones;
+}
+
 function getCredits(message){
     let credits = "";
     let lines = message;
@@ -187,8 +202,16 @@ function getCredits(message){
     if (lines[lines.length - 1].toLowerCase().includes('credits')) {
         credits = lines[lines.length - 1].replace(/&|:/, '').trim().replace(/credits/i, '').trim();
         return credits;
+    }else{
+        let waves = message.split(/\d\./g);
+        let credits = waves[waves.length - 1];
+        credits = credits.trim().split(',');
+        credits.splice(0, 2);
+        let firstPlayer = credits[0].trim().split(' ').pop();
+        credits.shift();
+        credits = [firstPlayer, credits].join(', ').trim();
+        return credits;
     }
-    return credits;
 }
 
 function getGameVersion(message){
@@ -204,10 +227,27 @@ function prepareData(message, apiData){
         week: getWeek(message),
         modifier_id: getModifier(message, apiData.modifiers),
         hazard_id: getHazard(message, apiData.hazards),
-        zones: getZones(message),
+        zones: formatRawZones(message),
         credits: getCredits(message),
         version: 2.18
     };
+
+
+    return validateData(data);
+}
+
+function prepDataFromRawText(message, apiData){
+   
+    // let data = {
+    //     username: 'waves-bot',
+    //     map_id: getMapId(message, apiData.maps),
+    //     week: getWeek(message),
+    //     modifier_id: getModifier(message, apiData.modifiers),
+    //     hazard_id: getHazard(message, apiData.hazards),
+    //     zones: getZonesFromRawText(message),
+    //     credits: getCreditsFromRawText(message),
+    //     version: 2.18
+    // };
 
 
     return validateData(data);
@@ -383,6 +423,7 @@ function countdown(message, time) {
 module.exports = {
     fetchResource, 
     prepareData, 
+    prepDataFromRawText,
     formatRawZones,
     validateData, 
     postData,
