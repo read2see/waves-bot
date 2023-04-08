@@ -76,6 +76,18 @@ module.exports = {
 				option.setName('version')
 					.setDescription('Game version.')
 				)
+			.addChannelOption(option =>
+				option.setName('channel')
+					.setDescription('The channel to reply at. defaults to current channel.')
+					)
+			.addStringOption( option => 
+				option.setName('on-completion')
+				.setDescription('Set custom completion message.')
+			)
+			.addBooleanOption(option =>
+				option.setName('visible-only-to-me')
+				.setDescription('Set the bot\'s message visibility to yourself alone.')
+			)
 			.addStringOption( option => 
 			option.setName('exception-1')
 			.setDescription('Choose a screenshot to exclude.')
@@ -109,23 +121,10 @@ module.exports = {
 				{name: 'omv-l', value: 'omv-l'},
 			)
 		)
-		.addStringOption( option => 
-			option.setName('on-completion')
-			.setDescription('Set custom completion message.')
-			
-		)
-		.addBooleanOption(option =>
-			option.setName('visible-only-to-me')
-			.setDescription('Set the bots message visibility to yourself alone.')
-		)
 		.addBooleanOption(option =>
             option.setName('delete-last-post')
             .setDescription('Deletes latest bot post if the user is attempting to correct generated screenshots.')
         )
-		.addChannelOption(option =>
-			option.setName('channel')
-				.setDescription('The channel to reply at. defaults to current channel.')
-				)
 		,
 
 	async execute(interaction) {

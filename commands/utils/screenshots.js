@@ -9,10 +9,17 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('screenshots')
 		.setDescription('Posts generated screenshots if they exist.')
+		.addChannelOption(option =>
+			option.setName('channel')
+				.setDescription('The channel to reply at. defaults to current channel.')
+		)
 		.addStringOption( option => 
 			option.setName('on-completion')
 			.setDescription('Set custom completion message.')
-			
+		)
+		.addBooleanOption(option =>
+			option.setName('visible-only-to-me')
+			.setDescription('Set the bots message visibility to yourself alone.')
 		)
 		.addStringOption( option => 
 			option.setName('exception-1')
@@ -47,13 +54,6 @@ module.exports = {
 				{name: 'omv-l', value: 'omv-l'},
 			)
 		)
-		.addBooleanOption(option =>
-			option.setName('visible-only-to-me')
-			.setDescription('Set the bots message visibility to yourself alone.')
-		)
-		.addChannelOption(option =>
-			option.setName('channel')
-				.setDescription('The channel to reply at. defaults to current channel.'))
 	,
 	async execute(interaction) {
 		await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
