@@ -78,18 +78,18 @@ module.exports = {
 			imageAttachments.push({attachment: fullURL, name: extractNameFromURL(fullURL)});
 		})
 		if(interaction.options.getString('on-completion')){
+			await interaction.deleteReply();
 			if(interaction.options.getChannel('channel')){
-				await interaction.deleteReply();
 				interaction.options.getChannel('channel').send({content: interaction.options.getString('on-completion'), files: imageAttachments});
 			}else{
-				await interaction.editReply({content: interaction.options.getString('on-completion'), files: imageAttachments});
+				await interaction.channel.send({content: interaction.options.getString('on-completion'), files: imageAttachments});
 			}
 		}else{
+			await interaction.deleteReply();
 			if(interaction.options.getChannel('channel')){
-				await interaction.deleteReply();
 				interaction.options.getChannel('channel').send({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
 			}else{
-				await interaction.editReply({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
+				await interaction.channel.send({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
 			}
 		}
 		console.log('\n----------------Screenshots sent.')
