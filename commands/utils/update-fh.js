@@ -139,7 +139,7 @@ module.exports = {
             const errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
             interaction.user.send(errorMessage);
             console.log(errorMessage);
-        }else{
+        } else {
             let response = await postData(data, api_secret, "\nSending POST request to submit the new updates and generating the screenshots......");
             await interaction.editReply({content:`Generating screenshots ETA ${delay/1000}s.`, ephemeral: interaction.options.getBoolean('visible-only-to-me')});
 

@@ -154,7 +154,8 @@ function getZones(message){
             if(zones.split('\n').join(',').split(',').length != 45){
                 return -1;
             }
-        }
+    }
+
     return zones;
 }
 
@@ -191,7 +192,7 @@ function formatRawZones(rawZones){
             zones += waves[i].trim() + '\n';
         }
     }
-
+    zones = zones.replace(/credits/gim, '');
     return zones;
 }
 
@@ -199,8 +200,9 @@ function getCredits(message){
     let credits = "";
     let lines = message;
     lines = lines.split('\n');
-    if (lines[lines.length - 1].toLowerCase().includes('credits')) {
+    if (lines[lines.length - 1].toLowerCase().includes('credits') && lines[lines.length - 1].length < 150 ) {
         credits = lines[lines.length - 1].replace(/&|:/, '').trim().replace(/credits/i, '').trim();
+        
         return credits;
     }else{
         let waves = message.split(/\d\./g);
@@ -210,6 +212,7 @@ function getCredits(message){
         let firstPlayer = credits[0].trim().split(' ').pop();
         credits.shift();
         credits = [firstPlayer, credits].join(', ').trim();
+
         return credits;
     }
 }
