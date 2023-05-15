@@ -1,9 +1,20 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, CommandOptionTypes, CommandInteractionOptionTypes, CommandInteractionOptionResolver, CommandInteractionBuilder} = require('discord.js');
 const { token } = require('./config.json');
+const { generateByRawMessage } = require('./helpers.js');
+const { api_secret } = require('./config.json');
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent] });
+
+const client = new Client({ 
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.DirectMessages,
+    	GatewayIntentBits.MessageContent
+	] 
+});
 
 client.commands = new Collection();
 client.cooldowns = new Collection();
@@ -27,6 +38,26 @@ for (const folder of commandFolders) {
 
 client.once(Events.ClientReady, (c) => {
 	console.log(`Ready! Logged in as ${c.user.tag}`);
+});
+
+client.on(Events.MessageCreate, async message => {
+	const allowedChannels = ['881700124617769031', '1092209339609137183', '1093576925655617596', '1092919014705082398', '1093796191340331049'];
+	const maps = ['the shores of vengeance', 'the shadows of war', 'the defense of aoi village', 'blood in the snow', 'twilight and ashes', 'blood and steel'];
+	if(allowedChannels.includes(message.channelId)){
+		for(let i = 0; i < maps.length; i++){
+			if(message.content.toLowerCase().includes(maps[i])){
+				let forProcessing = message.content.replace(/^\s+|\s+$/g, "").trim();
+				let processing = forProcessing.split('\n')
+				processing[processing.length-1] =  'credits '.concat(processing[processing.length-1]);
+				let processed = processing.join('\n');
+				//
+				const channel = await client.channels.fetch(message.channelId);
+				generateByRawMessage(processed, api_secret, channel);
+				//
+				break;
+			}
+		}
+	}
 });
 
 client.on(Events.InteractionCreate, async interaction => {

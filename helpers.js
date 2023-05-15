@@ -421,6 +421,52 @@ function countdown(message, time) {
     }, 1000);
   }
 
+async function generateByRawMessage(waves, api_secret, channel){
+    const delay = 60000;
+    const DEFAULT_COMPLETION_MESSAGE = 'NMS Waves Screenshots:';
+    let message = waves;
+    console.log("Preparing data to be sent...");
+
+    const apiData = await getApiData(api_secret);
+    let data = prepareData(message, apiData);
+
+    if(data.errors){
+        const errorMessage = "Some data are invalid:\n"+constructErrorMessage(data.errors);
+        console.log(errorMessage);
+    } else {
+        let response = await postData(data, api_secret, "\nSending POST request to submit the new updates and generating the screenshots......");
+
+        if(!response.ok){
+            console.log(`Request failed. Server response: ${response.status} | ${response.statusText} , something went wrong somewhere try again after 120s.`)
+        }else{
+            countdown('Time Remaining before sending screenshots', delay-3000);
+
+            setTimeout( async () => {
+
+                try {
+                    const generatedLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', api_secret, '\nFetching generated screenshots...');
+
+                    let linksMessage = "";
+                    let imageAttachments = [];
+                    if(generatedLinks){
+                        const exclusions = [];
+                        Object.values(generatedLinks).filter(screenshot => !screenshot.includes(exclusions[0]) && !screenshot.includes(exclusions[1]) && !screenshot.includes(exclusions[2])).forEach( async (link,index) => {
+                            let fullURL = 'https://gotlegends.info'+link;
+                            linksMessage = linksMessage.concat(fullURL+"\n");
+                            imageAttachments.push({attachment: fullURL, name: extractNameFromURL(fullURL)});
+                        })
+                        channel.send({content: DEFAULT_COMPLETION_MESSAGE, files: imageAttachments});
+                        console.log('\n----------------Screenshots sent.')
+                    }
+                } catch (error) {
+                    console.error(`Failed to send images to ${channel.id}: ${error}`);
+                }
+            },
+            delay
+            )
+        }
+    }
+}
 
 
 module.exports = {
@@ -446,5 +492,6 @@ module.exports = {
     downloadImages,
     countdown, 
     constructErrorMessage, 
+    generateByRawMessage,
 
 }
