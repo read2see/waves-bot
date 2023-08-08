@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const { api_secret } = require('../../config.json');
 const { fetchResource, extractNameFromURL } = require('../../helpers.js');
 
-const COOL_DDOWN = 0;
+const COOL_DDOWN = 30;
 const DEFAULT_COMPLETION_MESSAGE = 'Random Build:';
 
 module.exports = {
