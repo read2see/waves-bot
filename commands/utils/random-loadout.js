@@ -43,15 +43,6 @@ module.exports = {
 		,
 	async execute(interaction) {
 		await interaction.deferReply({ephemeral: interaction.options.getBoolean('visible-only-to-me')});
-		const origin = 'https://gotlegends.info';
-		// let screenshotsLinks = await fetchResource('https://gotlegends.info/bot/nms-order/generated_screenshots', api_secret);
-		// if(screenshotsLinks.status){
-		// 	await interaction.deleteReply();
-		// 	const errorMessage = `Sceenshots may have not been generated, resposnsded with ${screenshotsLinks.status}:${screenshotsLinks.statusText}`;
-		// 	console.log(errorMessage);
-		// 	interaction.user.send(errorMessage);
-		// 	return
-		// }
 
 		let imageAttachments = [];
 
