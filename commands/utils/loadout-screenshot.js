@@ -10,6 +10,11 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('loadout-screenshot')
 		.setDescription('Retrieve a loadout\'s screenshot.')
+        .addStringOption( option => 
+            option.setName('loadout-id')
+            .setDescription('The loadout\'s ID to be retrieved.')
+            .setRequired(true)
+        )
 		.addChannelOption(option =>
 			option.setName('channel')
 				.setDescription('The channel to reply at. defaults to current channel.')
@@ -21,10 +26,6 @@ module.exports = {
 		.addBooleanOption(option =>
 			option.setName('visible-only-to-me')
 			.setDescription('Set the bots message visibility to yourself alone.')
-		)
-        .addStringOption( option => 
-			option.setName('loadout-id')
-			.setDescription('The loadout\'s ID to be retrieved.')
 		)
 		,
 	async execute(interaction) {
