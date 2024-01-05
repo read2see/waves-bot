@@ -105,6 +105,8 @@ function getHazard(message, hazards) {
         if (message.search(regex) > -1) {
             hazard_id = hazards[i].id;
             return hazard_id;
+        }else{
+            hazard_id = 13
         }
     }
     return hazard_id;
